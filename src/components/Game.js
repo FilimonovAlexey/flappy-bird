@@ -8,6 +8,20 @@ import backgroundNight from '../assets/background-night.png';
 import baseImage from '../assets/base.png';
 import gameOverImage from '../assets/gameover.png';
 
+// Импорт звуковых файлов
+import wingSound from '../assets/songs/wing.wav';
+import swooshSound from '../assets/songs/swoosh.wav';
+import pointSound from '../assets/songs/point.wav';
+import hitSound from '../assets/songs/hit.wav';
+import dieSound from '../assets/songs/die.wav';
+
+// Создание объектов Audio
+const wingAudio = new Audio(wingSound);
+const swooshAudio = new Audio(swooshSound);
+const pointAudio = new Audio(pointSound);
+const hitAudio = new Audio(hitSound);
+const dieAudio = new Audio(dieSound);
+
 const Game = () => {
   const [birdPosition, setBirdPosition] = useState(250);
   const [velocity, setVelocity] = useState(0);
@@ -15,6 +29,7 @@ const Game = () => {
   const [pipes, setPipes] = useState([]);
   const [score, setScore] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [hasCollided, setHasCollided] = useState(false); // Новое состояние
   const [backgroundType, setBackgroundType] = useState('day');
 
   const birdPositionRef = useRef(birdPosition);
@@ -50,14 +65,21 @@ const Game = () => {
 
   // Управление прыжком
   const handleJump = () => {
-    if (!gameHasStarted) {
-      setGameHasStarted(true);
+    if (isGameOver || !gameHasStarted || hasCollided) {
+      return; // Не позволяем прыгать
     }
-    if (isGameOver) {
-      resetGame();
-    } else {
-      setVelocity(jumpHeight);
-    }
+    setVelocity(jumpHeight);
+    wingAudio.currentTime = 0;
+    wingAudio.play(); // Звук прыжка птички
+  };
+
+  // Начало игры
+  const startGame = () => {
+    setGameHasStarted(true);
+    setIsGameOver(false);
+    setVelocity(jumpHeight);
+    wingAudio.currentTime = 0;
+    wingAudio.play(); // Звук прыжка птички при старте
   };
 
   // Слушаем события прыжка
@@ -75,7 +97,7 @@ const Game = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('click', handleJump);
     };
-  }, [isGameOver]);
+  }, [isGameOver, gameHasStarted, hasCollided]);
 
   // Основная игровая логика
   useEffect(() => {
@@ -104,16 +126,27 @@ const Game = () => {
         setVelocity((prevVelocity) => {
           const newVelocity = Math.min(prevVelocity + gravity, 10);
           setBirdPosition((prevPosition) => {
-            const newPosition = Math.max(prevPosition + newVelocity, 0);
+            const newPosition = prevPosition + newVelocity;
 
-            // Проверка выхода за границы
-            if (
-              newPosition > playableHeight - 35 ||
-              newPosition < 0
-            ) {
-              setIsGameOver(true);
-              clearInterval(pipeTimerRef.current);
-              clearInterval(gameLoopRef.current);
+            if (!hasCollided) {
+              // Проверка выхода за границы
+              if (newPosition < 0) {
+                setHasCollided(true);
+                hitAudio.currentTime = 0;
+                hitAudio.play(); // Звук столкновения с верхом
+              }
+            } else {
+              // Если птичка достигла земли после столкновения
+              if (newPosition >= playableHeight - 35) {
+                setBirdPosition(playableHeight - 35);
+                if (!isGameOver) {
+                  setIsGameOver(true);
+                  dieAudio.currentTime = 0;
+                  dieAudio.play(); // Звук падения птички
+                }
+                clearInterval(pipeTimerRef.current);
+                clearInterval(gameLoopRef.current);
+              }
             }
 
             return newPosition;
@@ -138,16 +171,18 @@ const Game = () => {
           const pipeLeft = pipe.left;
           const pipeRight = pipe.left + pipeWidth;
 
-          // Проверка столкновений
+          // Проверка столкновений с трубами
           if (
             birdRight > pipeLeft &&
             birdLeft < pipeRight &&
             (birdTop < pipe.pipeTopHeight ||
               birdBottom > playableHeight - pipe.pipeBottomHeight)
           ) {
-            setIsGameOver(true);
-            clearInterval(pipeTimerRef.current);
-            clearInterval(gameLoopRef.current);
+            if (!hasCollided) {
+              setHasCollided(true);
+              hitAudio.currentTime = 0;
+              hitAudio.play(); // Звук столкновения
+            }
           }
 
           // Обновление счёта
@@ -155,9 +190,13 @@ const Game = () => {
             pipe.scored = true;
             const newScore = scoreRef.current + 1;
             setScore(newScore);
+            pointAudio.currentTime = 0;
+            pointAudio.play(); // Звук получения очка
 
             if (newScore % 10 === 0) {
-              setBackgroundType((prev) => (prev === 'day' ? 'night' : 'day'));
+              setBackgroundType((prev) =>
+                prev === 'day' ? 'night' : 'day'
+              );
             }
           }
         });
@@ -168,11 +207,12 @@ const Game = () => {
         clearInterval(gameLoopRef.current);
       };
     }
-  }, [gameHasStarted, isGameOver]);
+  }, [gameHasStarted, isGameOver, hasCollided]);
 
   const resetGame = () => {
     setGameHasStarted(false);
     setIsGameOver(false);
+    setHasCollided(false);
     setBirdPosition(250);
     setVelocity(0);
     setPipes([]);
@@ -233,7 +273,11 @@ const Game = () => {
             <img src={gameOverImage} alt="Game Over" style={{ width: '80%' }} />
             <Score score={score} style={{ marginTop: '20px' }} />
             <button
-              onClick={resetGame}
+              onClick={() => {
+                swooshAudio.currentTime = 0;
+                swooshAudio.play(); // Звук нажатия кнопки
+                resetGame();
+              }}
               style={{
                 marginTop: '20px',
                 padding: '10px 20px',
@@ -261,7 +305,11 @@ const Game = () => {
       </div>
       {!gameHasStarted && !isGameOver && (
         <button
-          onClick={handleJump}
+          onClick={() => {
+            swooshAudio.currentTime = 0;
+            swooshAudio.play(); // Звук нажатия кнопки
+            startGame();
+          }}
           style={{
             marginTop: '20px',
             padding: '10px 20px',
