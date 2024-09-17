@@ -10,6 +10,7 @@ import gameOverImage from '../assets/gameover.png';
 
 const Game = () => {
   const [birdPosition, setBirdPosition] = useState(250);
+  const [velocity, setVelocity] = useState(0);
   const [gameHasStarted, setGameHasStarted] = useState(false);
   const [pipes, setPipes] = useState([]);
   const [score, setScore] = useState(0);
@@ -20,13 +21,12 @@ const Game = () => {
   const pipesRef = useRef(pipes);
   const scoreRef = useRef(score);
 
-  const baseHeight = 112; // Высота base.png
-  const gameAreaHeight = 600; // Общая высота игрового поля
-  const playableHeight = gameAreaHeight - baseHeight; // Высота игрового пространства
+  const baseHeight = 112;
+  const gameAreaHeight = 600;
   const gameAreaWidth = 400;
-
-  const gravity = 3;
-  const jumpHeight = -60;
+  const playableHeight = gameAreaHeight - baseHeight;
+  const gravity = 0.8;
+  const jumpHeight = -10;
   const pipeWidth = 80;
   const pipeGap = 170;
   const pipeSpeed = 4;
@@ -35,7 +35,7 @@ const Game = () => {
   const pipeTimerRef = useRef(null);
   const gameLoopRef = useRef(null);
 
-  // Обновление рефов при изменении состояния
+  // Актуализируем позиции птицы и труб
   useEffect(() => {
     birdPositionRef.current = birdPosition;
   }, [birdPosition]);
@@ -48,7 +48,7 @@ const Game = () => {
     scoreRef.current = score;
   }, [score]);
 
-  // Обработка прыжка
+  // Управление прыжком
   const handleJump = () => {
     if (!gameHasStarted) {
       setGameHasStarted(true);
@@ -56,35 +56,37 @@ const Game = () => {
     if (isGameOver) {
       resetGame();
     } else {
-      setBirdPosition((prev) => prev + jumpHeight);
+      setVelocity(jumpHeight);
     }
   };
 
-  // Обработчик клавиатуры
-  const handleKeyDown = (e) => {
-    if (e.code === 'Space') {
-      handleJump();
-    }
-  };
-
+  // Слушаем события прыжка
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space') {
+        handleJump();
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('click', handleJump);
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('click', handleJump);
     };
   }, [isGameOver]);
 
+  // Основная игровая логика
   useEffect(() => {
     if (gameHasStarted && !isGameOver) {
-      // Добавление новых труб
       pipeTimerRef.current = setInterval(() => {
         const minPipeHeight = 50;
         const maxPipeHeight = playableHeight - pipeGap - minPipeHeight;
 
         const pipeTopHeight =
-          Math.floor(Math.random() * (maxPipeHeight - minPipeHeight + 1)) + minPipeHeight;
+          Math.floor(Math.random() * (maxPipeHeight - minPipeHeight + 1)) +
+          minPipeHeight;
         const pipeBottomHeight = playableHeight - pipeGap - pipeTopHeight;
 
         setPipes((prevPipes) => [
@@ -98,19 +100,35 @@ const Game = () => {
         ]);
       }, pipeInterval);
 
-      // Игровой цикл
       gameLoopRef.current = setInterval(() => {
-        // Обновление позиции птички
-        setBirdPosition((prev) => prev + gravity);
+        setVelocity((prevVelocity) => {
+          const newVelocity = Math.min(prevVelocity + gravity, 10);
+          setBirdPosition((prevPosition) => {
+            const newPosition = Math.max(prevPosition + newVelocity, 0);
 
-        // Движение труб влево
+            // Проверка выхода за границы
+            if (
+              newPosition > playableHeight - 35 ||
+              newPosition < 0
+            ) {
+              setIsGameOver(true);
+              clearInterval(pipeTimerRef.current);
+              clearInterval(gameLoopRef.current);
+            }
+
+            return newPosition;
+          });
+          return newVelocity;
+        });
+
+        // Обновление труб и проверка столкновений
         setPipes((prevPipes) =>
           prevPipes
             .map((pipe) => ({ ...pipe, left: pipe.left - pipeSpeed }))
             .filter((pipe) => pipe.left + pipeWidth > 0)
         );
 
-        // Проверка столкновений и обновление счета
+        // Проверка столкновений и обновление счёта
         const birdLeft = gameAreaWidth * 0.2;
         const birdRight = birdLeft + 50;
         const birdTop = birdPositionRef.current;
@@ -127,34 +145,22 @@ const Game = () => {
             (birdTop < pipe.pipeTopHeight ||
               birdBottom > playableHeight - pipe.pipeBottomHeight)
           ) {
-            // Игра окончена
             setIsGameOver(true);
             clearInterval(pipeTimerRef.current);
             clearInterval(gameLoopRef.current);
           }
 
-          // Обновление счета
+          // Обновление счёта
           if (!pipe.scored && pipeLeft + pipeWidth < birdLeft) {
             pipe.scored = true;
             const newScore = scoreRef.current + 1;
             setScore(newScore);
 
-            // Смена фона каждые 10 очков
             if (newScore % 10 === 0) {
-              setBackgroundType((prevType) => (prevType === 'day' ? 'night' : 'day'));
+              setBackgroundType((prev) => (prev === 'day' ? 'night' : 'day'));
             }
           }
         });
-
-        // Проверка выхода за границы
-        if (
-          birdPositionRef.current > playableHeight - 35 ||
-          birdPositionRef.current < 0
-        ) {
-          setIsGameOver(true);
-          clearInterval(pipeTimerRef.current);
-          clearInterval(gameLoopRef.current);
-        }
       }, 30);
 
       return () => {
@@ -168,6 +174,7 @@ const Game = () => {
     setGameHasStarted(false);
     setIsGameOver(false);
     setBirdPosition(250);
+    setVelocity(0);
     setPipes([]);
     setScore(0);
     setBackgroundType('day');
@@ -211,7 +218,7 @@ const Game = () => {
     <div style={{ textAlign: 'center', marginTop: '20px' }}>
       <div style={gameAreaStyle}>
         {!isGameOver && <Score score={score} style={scoreStyle} />}
-        <Bird position={birdPosition} />
+        <Bird position={birdPosition} velocity={velocity} />
         {pipes.map((pipe, index) => (
           <Pipe
             key={index}
@@ -238,8 +245,6 @@ const Game = () => {
             </button>
           </div>
         )}
-
-        {/* Добавляем Base */}
         <div
           style={{
             position: 'absolute',
