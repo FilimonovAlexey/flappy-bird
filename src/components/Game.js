@@ -209,7 +209,6 @@ const Game = () => {
 
   return (
     <div style={{ textAlign: 'center', marginTop: '20px' }}>
-      <h1>Flappy Bird на React</h1>
       <div style={gameAreaStyle}>
         {!isGameOver && <Score score={score} style={scoreStyle} />}
         <Bird position={birdPosition} />
