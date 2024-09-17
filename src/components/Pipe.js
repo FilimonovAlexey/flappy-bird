@@ -13,7 +13,7 @@ const Pipe = ({ left, pipeTopHeight, pipeBottomHeight, playableHeight }) => {
     width: `${pipeWidth}px`,
     height: `${pipeTopHeight}px`,
     backgroundImage: `url(${pipeTopImage})`,
-    backgroundSize: '100% 100%',
+    backgroundSize: 'contain', // Изменено с '100% 100%' на 'contain'
     backgroundRepeat: 'no-repeat',
     transform: 'rotate(180deg)',
   };
@@ -25,7 +25,7 @@ const Pipe = ({ left, pipeTopHeight, pipeBottomHeight, playableHeight }) => {
     width: `${pipeWidth}px`,
     height: `${pipeBottomHeight}px`,
     backgroundImage: `url(${pipeBottomImage})`,
-    backgroundSize: '100% 100%',
+    backgroundSize: 'contain', // Изменено с '100% 100%' на 'contain'
     backgroundRepeat: 'no-repeat',
   };
 

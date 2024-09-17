@@ -6,13 +6,13 @@ const Bird = ({ position }) => {
   const birdStyle = {
     position: 'absolute',
     top: `${position}px`,
-    left: '20%',
+    left: '20%', // Или используйте фиксированное значение в пикселях, например, '80px'
     width: '50px',
     height: '35px',
     backgroundImage: `url(${birdImage})`,
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
-    transition: 'top 0.1s',
+    zIndex: 2,
   };
 
   return <div style={birdStyle}></div>;
