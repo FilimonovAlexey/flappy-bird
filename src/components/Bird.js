@@ -8,12 +8,14 @@ const Bird = ({ position, velocity, gameHasStarted, hasCollided }) => {
   const [flapState, setFlapState] = useState(0); // Состояние для анимации
 
   useEffect(() => {
-    const flapInterval = setInterval(() => {
-      setFlapState((prev) => (prev + 1) % 3); // Переключаем анимацию
-    }, 200);
+    if (!hasCollided) { // Анимация крыльев только если нет столкновения
+      const flapInterval = setInterval(() => {
+        setFlapState((prev) => (prev + 1) % 3); // Переключаем анимацию
+      }, 200);
 
-    return () => clearInterval(flapInterval);
-  }, []);
+      return () => clearInterval(flapInterval);
+    }
+  }, [hasCollided]);
 
   const birdImages = [birdMidFlap, birdDownFlap, birdUpFlap];
   const currentBirdImage = birdImages[flapState];

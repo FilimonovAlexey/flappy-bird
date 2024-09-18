@@ -1,5 +1,6 @@
+// src/components/Game.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Howl, Howler } from 'howler'; // Импортируем Howler
+import { Howl, Howler } from 'howler';
 import Bird from './Bird';
 import Pipe from './Pipe';
 import Score from './Score';
@@ -11,16 +12,12 @@ import gameOverImage from '../assets/gameover.png';
 // Импорт звуковых файлов в форматах OGG и WAV
 import wingSoundOgg from '../assets/songs/wing.ogg';
 import wingSoundWav from '../assets/songs/wing.wav';
-
 import swooshSoundOgg from '../assets/songs/swoosh.ogg';
 import swooshSoundWav from '../assets/songs/swoosh.wav';
-
 import pointSoundOgg from '../assets/songs/point.ogg';
 import pointSoundWav from '../assets/songs/point.wav';
-
 import hitSoundOgg from '../assets/songs/hit.ogg';
 import hitSoundWav from '../assets/songs/hit.wav';
-
 import dieSoundOgg from '../assets/songs/die.ogg';
 import dieSoundWav from '../assets/songs/die.wav';
 
@@ -186,6 +183,7 @@ const Game = () => {
               sounds.die.play(); // Звук падения птички
               clearInterval(pipeTimerRef.current);
             }
+            return newPosition;
           }
 
           // Проверка столкновения с верхом экрана
@@ -228,9 +226,9 @@ const Game = () => {
           if (!hasCollided) {
             setHasCollided(true);
             sounds.hit.play(); // Звук столкновения
+            setIsGameOver(true); // Останавливаем игру при столкновении с трубой
           }
         }
-
         // Обновление счёта
         if (!pipe.scored && pipeLeft + pipeWidth < birdLeft) {
           pipe.scored = true;
