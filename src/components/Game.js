@@ -8,11 +8,11 @@ import baseImage from '../assets/base.png';
 import gameOverImage from '../assets/gameover.png';
 
 // Импорт звуковых файлов
-import wingSound from '../assets/songs/wing.ogg';
-import swooshSound from '../assets/songs/swoosh.ogg';
-import pointSound from '../assets/songs/point.ogg';
-import hitSound from '../assets/songs/hit.ogg';
-import dieSound from '../assets/songs/die.ogg';
+import wingSound from '../assets/songs/wing.wav';
+import swooshSound from '../assets/songs/swoosh.wav';
+import pointSound from '../assets/songs/point.wav';
+import hitSound from '../assets/songs/hit.wav';
+import dieSound from '../assets/songs/die.wav';
 
 // Создание объектов Audio
 const wingAudio = new Audio(wingSound);
