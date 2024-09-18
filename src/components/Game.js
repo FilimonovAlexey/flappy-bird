@@ -36,8 +36,8 @@ const Game = () => {
   const scoreRef = useRef(score);
 
   const baseHeight = 112;
-  const gameAreaHeight = 600;
-  const gameAreaWidth = 400;
+  const gameAreaHeight = 700;
+  const gameAreaWidth = 500;
   const playableHeight = gameAreaHeight - baseHeight;
   const gravity = 0.8;
   const jumpHeight = -10;
