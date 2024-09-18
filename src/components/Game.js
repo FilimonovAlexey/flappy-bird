@@ -1,4 +1,3 @@
-// src/components/Game.js
 import React, { useState, useEffect, useRef } from 'react';
 import Bird from './Bird';
 import Pipe from './Pipe';
@@ -276,6 +275,28 @@ const Game = () => {
             playableHeight={playableHeight}
           />
         ))}
+        {/* Перемещаем кнопку внутрь игрового поля и изменяем ее стиль */}
+        {!gameHasStarted && !isGameOver && (
+          <button
+            onClick={() => {
+              swooshAudio.currentTime = 0;
+              swooshAudio.play(); // Звук нажатия кнопки
+              startGame();
+            }}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              padding: '10px 20px',
+              fontSize: '16px',
+              cursor: 'pointer',
+              zIndex: 3,
+            }}
+          >
+            Начать игру
+          </button>
+        )}
         {isGameOver && (
           <div style={gameOverStyle}>
             <img src={gameOverImage} alt="Game Over" style={{ width: '80%' }} />
@@ -311,23 +332,7 @@ const Game = () => {
           }}
         ></div>
       </div>
-      {!gameHasStarted && !isGameOver && (
-        <button
-          onClick={() => {
-            swooshAudio.currentTime = 0;
-            swooshAudio.play(); // Звук нажатия кнопки
-            startGame();
-          }}
-          style={{
-            marginTop: '20px',
-            padding: '10px 20px',
-            fontSize: '16px',
-            cursor: 'pointer',
-          }}
-        >
-          Начать игру
-        </button>
-      )}
+      {/* Удаляем кнопку из-под игрового поля */}
     </div>
   );
 };
