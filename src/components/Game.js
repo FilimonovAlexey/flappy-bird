@@ -29,7 +29,7 @@ const Game = () => {
   const [pipes, setPipes] = useState([]);
   const [score, setScore] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [hasCollided, setHasCollided] = useState(false); // Новое состояние
+  const [hasCollided, setHasCollided] = useState(false);
   const [backgroundType, setBackgroundType] = useState('day');
 
   const birdPositionRef = useRef(birdPosition);
@@ -126,27 +126,26 @@ const Game = () => {
         setVelocity((prevVelocity) => {
           const newVelocity = Math.min(prevVelocity + gravity, 10);
           setBirdPosition((prevPosition) => {
-            const newPosition = prevPosition + newVelocity;
+            let newPosition = prevPosition + newVelocity;
 
-            if (!hasCollided) {
-              // Проверка выхода за границы
-              if (newPosition < 0) {
-                setHasCollided(true);
-                hitAudio.currentTime = 0;
-                hitAudio.play(); // Звук столкновения с верхом
-              }
-            } else {
-              // Если птичка достигла земли после столкновения
-              if (newPosition >= playableHeight - 35) {
-                setBirdPosition(playableHeight - 35);
-                if (!isGameOver) {
-                  setIsGameOver(true);
-                  dieAudio.currentTime = 0;
-                  dieAudio.play(); // Звук падения птички
-                }
+            // Ограничиваем позицию птицы, чтобы она не упала ниже базы
+            if (newPosition >= playableHeight - 35) {
+              newPosition = playableHeight - 35;
+              if (!isGameOver) {
+                setIsGameOver(true);
+                dieAudio.currentTime = 0;
+                dieAudio.play(); // Звук падения птички
                 clearInterval(pipeTimerRef.current);
                 clearInterval(gameLoopRef.current);
               }
+            }
+
+            // Проверка столкновения с верхом экрана
+            if (!hasCollided && newPosition < 0) {
+              newPosition = 0;
+              setHasCollided(true);
+              hitAudio.currentTime = 0;
+              hitAudio.play(); // Звук столкновения с верхом
             }
 
             return newPosition;
@@ -157,7 +156,10 @@ const Game = () => {
         // Обновление труб и проверка столкновений
         setPipes((prevPipes) =>
           prevPipes
-            .map((pipe) => ({ ...pipe, left: pipe.left - pipeSpeed }))
+            .map((pipe) => ({
+              ...pipe,
+              left: hasCollided ? pipe.left : pipe.left - pipeSpeed,
+            }))
             .filter((pipe) => pipe.left + pipeWidth > 0)
         );
 
@@ -182,6 +184,7 @@ const Game = () => {
               setHasCollided(true);
               hitAudio.currentTime = 0;
               hitAudio.play(); // Звук столкновения
+              setVelocity(0); // Устанавливаем скорость в 0 при столкновении
             }
           }
 
@@ -258,7 +261,12 @@ const Game = () => {
     <div style={{ textAlign: 'center', marginTop: '20px' }}>
       <div style={gameAreaStyle}>
         {!isGameOver && <Score score={score} style={scoreStyle} />}
-        <Bird position={birdPosition} velocity={velocity} />
+        <Bird
+          position={birdPosition}
+          velocity={velocity}
+          gameHasStarted={gameHasStarted}
+          hasCollided={hasCollided}
+        />
         {pipes.map((pipe, index) => (
           <Pipe
             key={index}

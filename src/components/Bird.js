@@ -4,7 +4,7 @@ import birdMidFlap from '../assets/yellowbird-midflap.png';
 import birdDownFlap from '../assets/yellowbird-downflap.png';
 import birdUpFlap from '../assets/yellowbird-upflap.png';
 
-const Bird = ({ position, velocity }) => {
+const Bird = ({ position, velocity, gameHasStarted, hasCollided }) => {
   const [flapState, setFlapState] = useState(0); // Состояние для анимации
 
   useEffect(() => {
@@ -18,6 +18,13 @@ const Bird = ({ position, velocity }) => {
   const birdImages = [birdMidFlap, birdDownFlap, birdUpFlap];
   const currentBirdImage = birdImages[flapState];
 
+  // Рассчитываем поворот птички
+  const rotation = hasCollided
+    ? 90
+    : gameHasStarted
+    ? Math.max(Math.min((velocity / 10) * 60, 25), -25)
+    : 0; // Птичка смотрит прямо до начала игры
+
   const birdStyle = {
     position: 'absolute',
     top: `${position}px`,
@@ -27,7 +34,8 @@ const Bird = ({ position, velocity }) => {
     backgroundImage: `url(${currentBirdImage})`,
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
-    transform: `rotate(${velocity < 0 ? -20 : 20}deg)`, // Поворот в зависимости от скорости
+    transform: `rotate(${rotation}deg)`, // Поворот в зависимости от состояния игры и скорости
+    zIndex: 2,
   };
 
   return <div style={birdStyle}></div>;
