@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Howl, Howler } from 'howler'; // Импортируем Howler
 import Bird from './Bird';
 import Pipe from './Pipe';
 import Score from './Score';
@@ -7,19 +8,45 @@ import backgroundNight from '../assets/background-night.png';
 import baseImage from '../assets/base.png';
 import gameOverImage from '../assets/gameover.png';
 
-// Импорт звуковых файлов
-import wingSound from '../assets/songs/wing.wav';
-import swooshSound from '../assets/songs/swoosh.wav';
-import pointSound from '../assets/songs/point.wav';
-import hitSound from '../assets/songs/hit.wav';
-import dieSound from '../assets/songs/die.wav';
+// Импорт звуковых файлов в форматах OGG и WAV
+import wingSoundOgg from '../assets/songs/wing.ogg';
+import wingSoundWav from '../assets/songs/wing.wav';
 
-// Создание объектов Audio
-const wingAudio = new Audio(wingSound);
-const swooshAudio = new Audio(swooshSound);
-const pointAudio = new Audio(pointSound);
-const hitAudio = new Audio(hitSound);
-const dieAudio = new Audio(dieSound);
+import swooshSoundOgg from '../assets/songs/swoosh.ogg';
+import swooshSoundWav from '../assets/songs/swoosh.wav';
+
+import pointSoundOgg from '../assets/songs/point.ogg';
+import pointSoundWav from '../assets/songs/point.wav';
+
+import hitSoundOgg from '../assets/songs/hit.ogg';
+import hitSoundWav from '../assets/songs/hit.wav';
+
+import dieSoundOgg from '../assets/songs/die.ogg';
+import dieSoundWav from '../assets/songs/die.wav';
+
+// Создание объектов Howl с использованием OGG и WAV форматов
+const sounds = {
+  wing: new Howl({
+    src: [wingSoundOgg, wingSoundWav],
+    preload: true,
+  }),
+  swoosh: new Howl({
+    src: [swooshSoundOgg, swooshSoundWav],
+    preload: true,
+  }),
+  point: new Howl({
+    src: [pointSoundOgg, pointSoundWav],
+    preload: true,
+  }),
+  hit: new Howl({
+    src: [hitSoundOgg, hitSoundWav],
+    preload: true,
+  }),
+  die: new Howl({
+    src: [dieSoundOgg, dieSoundWav],
+    preload: true,
+  }),
+};
 
 const Game = () => {
   // Используем состояние для ширины и высоты игрового поля
@@ -86,14 +113,25 @@ const Game = () => {
     scoreRef.current = score;
   }, [score]);
 
+  // Предзагрузка звуков
+  useEffect(() => {
+    Object.values(sounds).forEach(sound => sound.load());
+  }, []);
+
+  // Освобождение звуков при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      Howler.unload(); // Освобождает все загруженные звуки
+    };
+  }, []);
+
   // Управление прыжком
   const handleJump = useCallback(() => {
     if (isGameOver || !gameHasStarted) {
       return; // Не позволяем прыгать
     }
     setVelocity(jumpHeight);
-    wingAudio.currentTime = 0;
-    wingAudio.play(); // Звук прыжка птички
+    sounds.wing.play(); // Звук прыжка птички
   }, [isGameOver, gameHasStarted]);
 
   // Начало игры
@@ -106,8 +144,7 @@ const Game = () => {
     setPipes([]);
     setScore(0);
     setBackgroundType('day');
-    wingAudio.currentTime = 0;
-    wingAudio.play(); // Звук прыжка птички при старте
+    sounds.wing.play(); // Звук прыжка птички при старте
   };
 
   // Слушаем события прыжка
@@ -146,8 +183,7 @@ const Game = () => {
             newPosition = playableHeightRef.current - 35;
             if (!isGameOver) {
               setIsGameOver(true);
-              dieAudio.currentTime = 0;
-              dieAudio.play(); // Звук падения птички
+              sounds.die.play(); // Звук падения птички
               clearInterval(pipeTimerRef.current);
             }
           }
@@ -191,8 +227,7 @@ const Game = () => {
         ) {
           if (!hasCollided) {
             setHasCollided(true);
-            hitAudio.currentTime = 0;
-            hitAudio.play(); // Звук столкновения
+            sounds.hit.play(); // Звук столкновения
           }
         }
 
@@ -201,8 +236,7 @@ const Game = () => {
           pipe.scored = true;
           const newScore = scoreRef.current + 1;
           setScore(newScore);
-          pointAudio.currentTime = 0;
-          pointAudio.play(); // Звук получения очка
+          sounds.point.play(); // Звук получения очка
 
           if (newScore % 10 === 0) {
             setBackgroundType((prev) => (prev === 'day' ? 'night' : 'day'));
@@ -308,8 +342,7 @@ const Game = () => {
         {!gameHasStarted && !isGameOver && (
           <button
             onClick={() => {
-              swooshAudio.currentTime = 0;
-              swooshAudio.play(); // Звук нажатия кнопки
+              sounds.swoosh.play(); // Звук нажатия кнопки
               startGame();
             }}
             style={{
@@ -336,8 +369,7 @@ const Game = () => {
             <Score score={score} style={{ marginTop: '20px' }} />
             <button
               onClick={() => {
-                swooshAudio.currentTime = 0;
-                swooshAudio.play(); // Звук нажатия кнопки
+                sounds.swoosh.play(); // Звук нажатия кнопки
                 resetGame();
               }}
               style={{
