@@ -14,8 +14,8 @@ import labelFlappyBird from '../assets/label_flappy_bird.png';
 import startButtonSprite from '../assets/Start-button-sprite.png';
 
 // Импорт кнопок паузы и возобновления
-import buttonPause from '../assets/button_pause.png'; // Убедитесь, что путь правильный
-import buttonResume from '../assets/button_resume.png'; // Убедитесь, что путь правильный
+import buttonPause from '../assets/button_pause.png';
+import buttonResume from '../assets/button_resume.png';
 
 // Импорт звуковых файлов в форматах OGG и WAV
 import wingSoundOgg from '../assets/songs/wing.ogg';
@@ -54,7 +54,7 @@ const sounds = {
 };
 
 const Game = () => {
-  // Существующие состояния
+  // Состояния игры
   const [gameAreaWidth, setGameAreaWidth] = useState(window.innerWidth);
   const [gameAreaHeight, setGameAreaHeight] = useState(window.innerHeight);
   const [birdPosition, setBirdPosition] = useState(window.innerHeight / 2);
@@ -65,19 +65,16 @@ const Game = () => {
   const [isGameOver, setIsGameOver] = useState(false);
   const [hasCollided, setHasCollided] = useState(false);
   const [backgroundType, setBackgroundType] = useState('day');
-
-  // Новое состояние для паузы
   const [isPaused, setIsPaused] = useState(false);
+
+  // Рефы для актуальных значений
   const isPausedRef = useRef(isPaused);
-
-  // Обновляем ref при изменении isPaused
-  useEffect(() => {
-    isPausedRef.current = isPaused;
-  }, [isPaused]);
-
   const birdPositionRef = useRef(birdPosition);
   const pipesRef = useRef(pipes);
   const scoreRef = useRef(score);
+  const gameAreaHeightRef = useRef(gameAreaHeight);
+  const isGameOverRef = useRef(isGameOver);
+  const hasPlayedDieSoundRef = useRef(false);
 
   const baseHeight = 112;
   const gravity = 0.8;
@@ -90,19 +87,26 @@ const Game = () => {
   const pipeTimerRef = useRef(null);
   const playableHeightRef = useRef(gameAreaHeight - baseHeight);
 
+  // Обновляем ref при изменении состояний
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+    birdPositionRef.current = birdPosition;
+    pipesRef.current = pipes;
+    scoreRef.current = score;
+    gameAreaHeightRef.current = gameAreaHeight;
+    isGameOverRef.current = isGameOver;
+    playableHeightRef.current = gameAreaHeight - baseHeight;
+  }, [isPaused, birdPosition, pipes, score, gameAreaHeight, isGameOver]);
+
   // Обновляем размеры игрового поля при изменении размера окна
   useEffect(() => {
     const handleResize = () => {
       setGameAreaWidth(window.innerWidth);
       setGameAreaHeight(window.innerHeight);
-      playableHeightRef.current = window.innerHeight - baseHeight;
     };
 
     window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Инициализация Telegram Web App
@@ -114,53 +118,37 @@ const Game = () => {
     }
   }, []);
 
-  // Актуализируем позиции птицы и труб
+  // Предзагрузка звуков и освобождение ресурсов
   useEffect(() => {
-    birdPositionRef.current = birdPosition;
-  }, [birdPosition]);
-
-  useEffect(() => {
-    pipesRef.current = pipes;
-  }, [pipes]);
-
-  useEffect(() => {
-    scoreRef.current = score;
-  }, [score]);
-
-  // Предзагрузка звуков
-  useEffect(() => {
-    Object.values(sounds).forEach(sound => sound.load());
-  }, []);
-
-  // Освобождение звуков при размонтировании компонента
-  useEffect(() => {
+    Object.values(sounds).forEach((sound) => sound.load());
     return () => {
-      Howler.unload(); // Освобождает все загруженные звуки
+      Howler.unload();
     };
   }, []);
 
   // Управление прыжком
   const handleJump = useCallback(() => {
     if (isGameOver || !gameHasStarted || isPausedRef.current) {
-      return; // Не позволяем прыгать, если игра на паузе
+      return;
     }
     setVelocity(jumpHeight);
-    sounds.wing.play(); // Звук прыжка птички
+    sounds.wing.play();
   }, [isGameOver, gameHasStarted]);
 
   // Начало игры
-  const startGame = () => {
+  const startGame = useCallback(() => {
     setGameHasStarted(true);
     setIsGameOver(false);
     setHasCollided(false);
-    setIsPaused(false); // Сброс паузы при старте
-    setBirdPosition(gameAreaHeight / 2);
+    setIsPaused(false);
+    setBirdPosition(gameAreaHeightRef.current / 2);
     setVelocity(jumpHeight);
     setPipes([]);
     setScore(0);
     setBackgroundType('day');
-    sounds.wing.play(); // Звук прыжка птички при старте
-  };
+    hasPlayedDieSoundRef.current = false;
+    sounds.wing.play();
+  }, []);
 
   // Слушаем события прыжка
   useEffect(() => {
@@ -179,13 +167,13 @@ const Game = () => {
     };
   }, [handleJump]);
 
-  // Основная игровая логика с использованием requestAnimationFrame
+  // Основная игровая логика
   useEffect(() => {
     let animationFrameId;
     let lastTime = performance.now();
 
     const gameLoop = (currentTime) => {
-      if (!isPausedRef.current) {
+      if (!isPausedRef.current && !isGameOverRef.current) {
         const deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
@@ -197,10 +185,14 @@ const Game = () => {
             // Ограничиваем позицию птицы, чтобы она не упала ниже базы
             if (newPosition >= playableHeightRef.current - 35) {
               newPosition = playableHeightRef.current - 35;
-              if (!isGameOver) {
+              if (!isGameOverRef.current) {
                 setIsGameOver(true);
-                sounds.die.play(); // Звук падения птички
                 clearInterval(pipeTimerRef.current);
+              }
+              // Проигрываем звук die, если он еще не был проигран
+              if (!hasPlayedDieSoundRef.current) {
+                sounds.die.play();
+                hasPlayedDieSoundRef.current = true;
               }
               return newPosition;
             }
@@ -216,96 +208,151 @@ const Game = () => {
         });
 
         // Обновление труб и проверка столкновений
-        setPipes((prevPipes) =>
-          prevPipes
-            .map((pipe) => ({
-              ...pipe,
-              left: hasCollided ? pipe.left : pipe.left - pipeSpeed,
-            }))
-            .filter((pipe) => pipe.left + pipeWidth > 0)
-        );
+        setPipes((prevPipes) => {
+          const birdLeft = gameAreaWidth * 0.2;
+          const birdRight = birdLeft + 50;
+          const birdTop = birdPositionRef.current;
+          const birdBottom = birdTop + 35;
 
-        // Проверка столкновений и обновление счёта
-        const birdLeft = gameAreaWidth * 0.2;
-        const birdRight = birdLeft + 50;
-        const birdTop = birdPositionRef.current;
-        const birdBottom = birdTop + 35;
+          const updatedPipes = prevPipes
+            .map((pipe) => {
+              const newLeft = hasCollided ? pipe.left : pipe.left - pipeSpeed;
+              const pipeLeft = newLeft;
+              const pipeRight = newLeft + pipeWidth;
 
-        pipesRef.current.forEach((pipe) => {
-          const pipeLeft = pipe.left;
-          const pipeRight = pipe.left + pipeWidth;
+              let scored = pipe.scored;
 
-          // Проверка столкновений с трубами
-          if (
-            birdRight > pipeLeft &&
-            birdLeft < pipeRight &&
-            (birdTop < pipe.pipeTopHeight ||
-              birdBottom > playableHeightRef.current - pipe.pipeBottomHeight)
-          ) {
-            if (!hasCollided) {
-              setHasCollided(true);
-              sounds.hit.play(); // Звук столкновения
-              setIsGameOver(true); // Останавливаем игру при столкновении с трубой
-              clearInterval(pipeTimerRef.current);
+              // Проверка столкновений с трубами
+              if (
+                birdRight > pipeLeft &&
+                birdLeft < pipeRight &&
+                (birdTop < pipe.pipeTopHeight ||
+                  birdBottom >
+                    playableHeightRef.current - pipe.pipeBottomHeight)
+              ) {
+                if (!hasCollided) {
+                  setHasCollided(true);
+                  sounds.hit.play();
+                  setIsGameOver(true);
+                  clearInterval(pipeTimerRef.current);
+                }
+              }
+
+              // Обновление счёта и смена фона
+              if (!scored && pipeLeft + pipeWidth < birdLeft) {
+                scored = true;
+                const newScore = scoreRef.current + 1;
+                setScore(newScore);
+                sounds.point.play();
+
+                if (newScore % 10 === 0) {
+                  setBackgroundType((prev) =>
+                    prev === 'day' ? 'night' : 'day'
+                  );
+                }
+              }
+
+              return {
+                ...pipe,
+                left: newLeft,
+                scored,
+              };
+            })
+            .filter((pipe) => pipe.left + pipeWidth > 0);
+
+          return updatedPipes;
+        });
+      } else if (isGameOverRef.current) {
+        // Если игра окончена, но птица еще не достигла земли после столкновения с трубой
+        setVelocity((prevVelocity) => {
+          const newVelocity = Math.min(prevVelocity + gravity, 10);
+          setBirdPosition((prevPosition) => {
+            let newPosition = prevPosition + newVelocity;
+
+            if (newPosition >= playableHeightRef.current - 35) {
+              newPosition = playableHeightRef.current - 35;
+              // Проигрываем звук die, если он еще не был проигран
+              if (!hasPlayedDieSoundRef.current) {
+                sounds.die.play();
+                hasPlayedDieSoundRef.current = true;
+              }
+              return newPosition;
             }
-          }
-          // Обновление счёта
-          if (!pipe.scored && pipeLeft + pipeWidth < birdLeft) {
-            pipe.scored = true;
-            const newScore = scoreRef.current + 1;
-            setScore(newScore);
-            sounds.point.play(); // Звук получения очка
 
-            if (newScore % 10 === 0) {
-              setBackgroundType((prev) => (prev === 'day' ? 'night' : 'day'));
-            }
-          }
+            return newPosition;
+          });
+          return newVelocity;
         });
       }
 
       animationFrameId = requestAnimationFrame(gameLoop);
     };
 
-    if (gameHasStarted && !isPaused) {
+    if (gameHasStarted) {
       animationFrameId = requestAnimationFrame(gameLoop);
 
       // Спавн труб
-      pipeTimerRef.current = setInterval(() => {
-        if (isPausedRef.current) return; // Не спавнить новые трубы, если игра на паузе
+      if (!isGameOver && !isPaused) {
+        pipeTimerRef.current = setInterval(() => {
+          if (isPausedRef.current || isGameOverRef.current) return;
 
-        const minPipeHeight = 50;
-        const maxPipeHeight =
-          playableHeightRef.current - pipeGap - minPipeHeight;
+          const minPipeHeight = 50;
+          const maxPipeHeight =
+            playableHeightRef.current - pipeGap - minPipeHeight;
 
-        const pipeTopHeight =
-          Math.floor(Math.random() * (maxPipeHeight - minPipeHeight + 1)) +
-          minPipeHeight;
-        const pipeBottomHeight =
-          playableHeightRef.current - pipeGap - pipeTopHeight;
+          const pipeTopHeight =
+            Math.floor(Math.random() * (maxPipeHeight - minPipeHeight + 1)) +
+            minPipeHeight;
+          const pipeBottomHeight =
+            playableHeightRef.current - pipeGap - pipeTopHeight;
 
-        setPipes((prevPipes) => [
-          ...prevPipes,
-          {
-            left: gameAreaWidth,
-            pipeTopHeight,
-            pipeBottomHeight,
-            scored: false,
-          },
-        ]);
-      }, pipeInterval);
+          setPipes((prevPipes) => [
+            ...prevPipes,
+            {
+              left: gameAreaWidth,
+              pipeTopHeight,
+              pipeBottomHeight,
+              scored: false,
+            },
+          ]);
+        }, pipeInterval);
+      }
     }
 
     return () => {
       cancelAnimationFrame(animationFrameId);
       clearInterval(pipeTimerRef.current);
     };
-  }, [gameHasStarted, hasCollided, isGameOver, gameAreaWidth]);
+  }, [
+    gameHasStarted,
+    hasCollided,
+    isGameOver,
+    gameAreaWidth,
+    isPaused,
+    isGameOverRef,
+  ]);
 
-  const resetGame = () => {
+  const resetGame = useCallback(() => {
     startGame();
-  };
+  }, [startGame]);
 
-  // Обновленные стили для полного экрана
+  // Обработчики событий
+  const handlePauseClick = useCallback(() => {
+    setIsPaused((prev) => !prev);
+    sounds.swoosh.play();
+  }, []);
+
+  const handleStartClick = useCallback(() => {
+    sounds.swoosh.play();
+    startGame();
+  }, [startGame]);
+
+  const handleResetClick = useCallback(() => {
+    sounds.swoosh.play();
+    resetGame();
+  }, [resetGame]);
+
+  // Стили игры
   const gameAreaStyle = {
     position: 'relative',
     width: '100vw',
@@ -338,7 +385,6 @@ const Game = () => {
     alignItems: 'center',
   };
 
-  // Стили для начального экрана
   const initialScreenStyle = {
     position: 'absolute',
     top: '50%',
@@ -350,27 +396,25 @@ const Game = () => {
     alignItems: 'center',
   };
 
-  // Измененный стиль для заголовка (увеличен в 2 раза)
   const labelStyle = {
-    width: '200%', // Увеличено в два раза
-    maxWidth: '400px', // Ограничение максимальной ширины для предотвращения растяжения
-    marginTop: '20px', // Добавлено пространство между птичкой и заголовком
-    marginBottom: '20px', // Добавлено пространство между заголовком и кнопкой
+    width: '200%',
+    maxWidth: '400px',
+    marginTop: '20px',
+    marginBottom: '20px',
   };
 
   const startButtonStyle = {
-    width: '150px', // Регулируйте размер по необходимости
+    width: '150px',
     cursor: 'pointer',
-    marginBottom: '20px', // Добавлено пространство между кнопкой и птичкой
+    marginBottom: '20px',
   };
 
-  // Стили для кнопки паузы/возобновления
   const pauseButtonStyle = {
     position: 'absolute',
     top: '10px',
     left: '10px',
-    width: '50px', // Регулируйте размер по необходимости
-    height: '50px', // Регулируйте размер по необходимости
+    width: '50px',
+    height: '50px',
     cursor: 'pointer',
     zIndex: 4,
   };
@@ -378,23 +422,22 @@ const Game = () => {
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={gameAreaStyle}>
-        {/* Кнопка паузы/возобновления отображается только во время игры и когда игра не окончена */}
+        {/* Кнопка паузы/возобновления */}
         {gameHasStarted && !isGameOver && (
           <img
             src={isPaused ? buttonResume : buttonPause}
-            alt={isPaused ? "Resume" : "Pause"}
+            alt={isPaused ? 'Resume' : 'Pause'}
             style={pauseButtonStyle}
-            onClick={() => {
-              setIsPaused((prev) => !prev);
-              sounds.swoosh.play(); // Звук нажатия кнопки
-            }}
+            onClick={handlePauseClick}
           />
         )}
 
+        {/* Отображение счёта */}
         {!isGameOver && gameHasStarted && (
           <Score score={score} style={scoreStyle} />
         )}
-        {/* Отображаем птичку только если игра началась */}
+
+        {/* Птичка */}
         {gameHasStarted && (
           <Bird
             position={birdPosition}
@@ -403,9 +446,11 @@ const Game = () => {
             hasCollided={hasCollided}
           />
         )}
+
+        {/* Трубы */}
         {pipes.map((pipe, index) => (
           <Pipe
-            key={index}
+            key={pipe.left + index}
             left={pipe.left}
             pipeTopHeight={pipe.pipeTopHeight}
             pipeBottomHeight={pipe.pipeBottomHeight}
@@ -413,11 +458,11 @@ const Game = () => {
           />
         ))}
 
-        {/* Начальный экран с птичкой, заголовком и кнопкой "Старт" */}
+        {/* Начальный экран */}
         {!gameHasStarted && !isGameOver && (
           <div style={initialScreenStyle}>
             <Bird
-              position={gameAreaHeight / 2 - 150} // Располагаем птичку выше заголовка
+              position={gameAreaHeight / 2 - 150}
               velocity={0}
               gameHasStarted={false}
               hasCollided={false}
@@ -431,14 +476,12 @@ const Game = () => {
               src={startButtonSprite}
               alt="Start"
               style={startButtonStyle}
-              onClick={() => {
-                sounds.swoosh.play(); // Звук нажатия кнопки
-                startGame();
-              }}
+              onClick={handleStartClick}
             />
           </div>
         )}
 
+        {/* Экран окончания игры */}
         {isGameOver && (
           <div style={gameOverStyle}>
             <img
@@ -454,14 +497,12 @@ const Game = () => {
                 ...startButtonStyle,
                 marginTop: '20px',
               }}
-              onClick={() => {
-                sounds.swoosh.play(); // Звук нажатия кнопки
-                resetGame();
-              }}
+              onClick={handleResetClick}
             />
           </div>
         )}
 
+        {/* База */}
         <div
           style={{
             position: 'absolute',
