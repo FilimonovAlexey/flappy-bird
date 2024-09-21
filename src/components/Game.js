@@ -9,6 +9,10 @@ import backgroundNight from '../assets/background-night.png';
 import baseImage from '../assets/base.png';
 import gameOverImage from '../assets/gameover.png';
 
+// Импорт новых изображений
+import labelFlappyBird from '../assets/label_flappy_bird.png';
+import startButtonSprite from '../assets/Start-button-sprite.png';
+
 // Импорт звуковых файлов в форматах OGG и WAV
 import wingSoundOgg from '../assets/songs/wing.ogg';
 import wingSoundWav from '../assets/songs/wing.wav';
@@ -315,18 +319,47 @@ const Game = () => {
     alignItems: 'center',
   };
 
+  // Стили для начального экрана
+  const initialScreenStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 3,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  };
+
+  // Измененный стиль для заголовка (увеличен в 2 раза)
+  const labelStyle = {
+    width: '200%', // Увеличено в два раза
+    maxWidth: '400px', // Ограничение максимальной ширины для предотвращения растяжения
+    marginTop: '20px', // Добавлено пространство между птичкой и заголовком
+    marginBottom: '20px', // Добавлено пространство между заголовком и кнопкой
+  };
+
+  const startButtonStyle = {
+    width: '150px', // Регулируйте размер по необходимости
+    cursor: 'pointer',
+    marginBottom: '20px', // Добавлено пространство между кнопкой и птичкой
+  };
+
   return (
     <div style={{ textAlign: 'center' }}>
       <div style={gameAreaStyle}>
         {!isGameOver && gameHasStarted && (
           <Score score={score} style={scoreStyle} />
         )}
-        <Bird
-          position={birdPosition}
-          velocity={velocity}
-          gameHasStarted={gameHasStarted}
-          hasCollided={hasCollided}
-        />
+        {/* Отображаем птичку только если игра началась */}
+        {gameHasStarted && (
+          <Bird
+            position={birdPosition}
+            velocity={velocity}
+            gameHasStarted={gameHasStarted}
+            hasCollided={hasCollided}
+          />
+        )}
         {pipes.map((pipe, index) => (
           <Pipe
             key={index}
@@ -336,27 +369,33 @@ const Game = () => {
             playableHeight={playableHeightRef.current}
           />
         ))}
-        {/* Перемещаем кнопку внутрь игрового поля и изменяем ее стиль */}
+
+        {/* Начальный экран с птичкой, заголовком и кнопкой "Старт" */}
         {!gameHasStarted && !isGameOver && (
-          <button
-            onClick={() => {
-              sounds.swoosh.play(); // Звук нажатия кнопки
-              startGame();
-            }}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              padding: '10px 20px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              zIndex: 3,
-            }}
-          >
-            Начать игру
-          </button>
+          <div style={initialScreenStyle}>
+            <Bird
+              position={gameAreaHeight / 2 - 150} // Располагаем птичку выше заголовка
+              velocity={0}
+              gameHasStarted={false}
+              hasCollided={false}
+            />
+            <img
+              src={labelFlappyBird}
+              alt="Flappy Bird"
+              style={labelStyle}
+            />
+            <img
+              src={startButtonSprite}
+              alt="Start"
+              style={startButtonStyle}
+              onClick={() => {
+                sounds.swoosh.play(); // Звук нажатия кнопки
+                startGame();
+              }}
+            />
+          </div>
         )}
+
         {isGameOver && (
           <div style={gameOverStyle}>
             <img
@@ -365,22 +404,21 @@ const Game = () => {
               style={{ width: '80%' }}
             />
             <Score score={score} style={{ marginTop: '20px' }} />
-            <button
+            <img
+              src={startButtonSprite}
+              alt="Повторить игру"
+              style={{
+                ...startButtonStyle,
+                marginTop: '20px',
+              }}
               onClick={() => {
                 sounds.swoosh.play(); // Звук нажатия кнопки
                 resetGame();
               }}
-              style={{
-                marginTop: '20px',
-                padding: '10px 20px',
-                fontSize: '16px',
-                cursor: 'pointer',
-              }}
-            >
-              Повторить игру
-            </button>
+            />
           </div>
         )}
+
         <div
           style={{
             position: 'absolute',
