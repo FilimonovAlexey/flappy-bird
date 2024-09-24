@@ -15,7 +15,7 @@ const Pipe = ({ left, pipeTopHeight, pipeBottomHeight, playableHeight }) => {
     backgroundImage: `url(${pipeTopImage})`,
     backgroundSize: '100% 100%',
     backgroundRepeat: 'no-repeat',
-    transform: 'rotate(180deg)',
+    // transform: 'rotate(180deg)',
   };
 
   const pipeBottomStyle = {
