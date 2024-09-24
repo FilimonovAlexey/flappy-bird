@@ -404,7 +404,7 @@ const Game = () => {
   };
 
   const startButtonStyle = {
-    width: '150px',
+    width: '100px',
     cursor: 'pointer',
     marginBottom: '20px',
   };
