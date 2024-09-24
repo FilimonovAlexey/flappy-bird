@@ -525,7 +525,7 @@ const Game = () => {
                 hasCollided={false}
                 style={{
                   position: 'absolute',
-                  left: '-60px', // Отодвигаем птичку влево от message.png
+                  left: '-80px', // Отодвигаем птичку влево от message.png
                   top: '50%',
                   transform: 'translateY(-50%)',
                   width: '50px',
@@ -547,7 +547,7 @@ const Game = () => {
             <img
               src={gameOverImage}
               alt="Game Over"
-              style={{ width: '80%' }}
+              style={{ width: '100%' }}
             />
             <Score score={score} style={{ marginTop: '20px' }} />
             <img
