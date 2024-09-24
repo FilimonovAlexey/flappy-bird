@@ -411,10 +411,10 @@ const Game = () => {
 
   const pauseButtonStyle = {
     position: 'absolute',
-    top: '10px',
-    left: '10px',
-    width: '50px',
-    height: '50px',
+    top: '20px',
+    left: '20px',
+    width: '30px',
+    height: '30px',
     cursor: 'pointer',
     zIndex: 4,
   };
