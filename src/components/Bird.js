@@ -4,13 +4,20 @@ import birdMidFlap from '../assets/yellowbird-midflap.png';
 import birdDownFlap from '../assets/yellowbird-downflap.png';
 import birdUpFlap from '../assets/yellowbird-upflap.png';
 
-const Bird = ({ position, velocity, gameHasStarted, hasCollided }) => {
-  const [flapState, setFlapState] = useState(0); // Состояние для анимации
+const Bird = ({
+  position,
+  velocity,
+  gameHasStarted,
+  hasCollided,
+  style = {},
+}) => {
+  const [flapState, setFlapState] = useState(0); // Состояние анимации
 
   useEffect(() => {
-    if (!hasCollided) { // Анимация крыльев только если нет столкновения
+    if (!hasCollided) {
+      // Анимация крыльев, если нет столкновения
       const flapInterval = setInterval(() => {
-        setFlapState((prev) => (prev + 1) % 3); // Переключаем анимацию
+        setFlapState((prev) => (prev + 1) % 3); // Переключение кадров
       }, 200);
 
       return () => clearInterval(flapInterval);
@@ -20,7 +27,7 @@ const Bird = ({ position, velocity, gameHasStarted, hasCollided }) => {
   const birdImages = [birdMidFlap, birdDownFlap, birdUpFlap];
   const currentBirdImage = birdImages[flapState];
 
-  // Рассчитываем поворот птички
+  // Рассчитываем угол поворота птички
   const rotation = hasCollided
     ? 90
     : gameHasStarted
@@ -36,8 +43,9 @@ const Bird = ({ position, velocity, gameHasStarted, hasCollided }) => {
     backgroundImage: `url(${currentBirdImage})`,
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
-    transform: `rotate(${rotation}deg)`, // Поворот в зависимости от состояния игры и скорости
+    transform: `rotate(${rotation}deg)`,
     zIndex: 2,
+    ...style, // Позволяет переопределять стили через пропсы
   };
 
   return <div style={birdStyle}></div>;

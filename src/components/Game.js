@@ -12,8 +12,7 @@ import gameOverImage from '../assets/gameover.png';
 // Импорт новых изображений
 import labelFlappyBird from '../assets/label_flappy_bird.png';
 import startButtonSprite from '../assets/Start-button-sprite.png';
-
-// Импорт кнопок паузы и возобновления
+import messageImage from '../assets/message.png';
 import buttonPause from '../assets/button_pause.png';
 import buttonResume from '../assets/button_resume.png';
 
@@ -66,6 +65,7 @@ const Game = () => {
   const [hasCollided, setHasCollided] = useState(false);
   const [backgroundType, setBackgroundType] = useState('day');
   const [isPaused, setIsPaused] = useState(false);
+  const [showMessage, setShowMessage] = useState(false); // Добавлено
 
   // Рефы для актуальных значений
   const isPausedRef = useRef(isPaused);
@@ -141,6 +141,7 @@ const Game = () => {
     setIsGameOver(false);
     setHasCollided(false);
     setIsPaused(false);
+    setShowMessage(false); // Добавлено
     setBirdPosition(gameAreaHeightRef.current / 2);
     setVelocity(jumpHeight);
     setPipes([]);
@@ -150,22 +151,33 @@ const Game = () => {
     sounds.wing.play();
   }, []);
 
+  // Обработчик клика
+  const handleClick = useCallback(() => {
+    if (showMessage) {
+      startGame();
+    } else if (gameHasStarted && !isGameOver) {
+      handleJump();
+    }
+  }, [showMessage, gameHasStarted, isGameOver, startGame, handleJump]);
+
   // Слушаем события прыжка
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === 'Space') {
-        handleJump();
+        if (showMessage) {
+          startGame();
+        } else if (gameHasStarted && !isGameOver) {
+          handleJump();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('click', handleJump);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('click', handleJump);
     };
-  }, [handleJump]);
+  }, [showMessage, gameHasStarted, isGameOver, handleJump, startGame]);
 
   // Основная игровая логика
   useEffect(() => {
@@ -344,8 +356,8 @@ const Game = () => {
 
   const handleStartClick = useCallback(() => {
     sounds.swoosh.play();
-    startGame();
-  }, [startGame]);
+    setShowMessage(true); // Показываем message.png
+  }, []);
 
   const handleResetClick = useCallback(() => {
     sounds.swoosh.play();
@@ -419,9 +431,30 @@ const Game = () => {
     zIndex: 4,
   };
 
+  // Стили для экрана с message.png
+  const messageScreenStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 3,
+  };
+
+  const messageContentStyle = {
+    position: 'relative', // Чтобы абсолютное позиционирование работало относительно этого контейнера
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const messageStyle = {
+    width: '200px',
+    maxWidth: '400px',
+  };
+
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={gameAreaStyle}>
+      <div style={gameAreaStyle} onClick={handleClick}>
         {/* Кнопка паузы/возобновления */}
         {gameHasStarted && !isGameOver && (
           <img
@@ -459,7 +492,7 @@ const Game = () => {
         ))}
 
         {/* Начальный экран */}
-        {!gameHasStarted && !isGameOver && (
+        {!gameHasStarted && !isGameOver && !showMessage && (
           <div style={initialScreenStyle}>
             <Bird
               position={gameAreaHeight / 2 - 150}
@@ -478,6 +511,33 @@ const Game = () => {
               style={startButtonStyle}
               onClick={handleStartClick}
             />
+          </div>
+        )}
+
+        {/* Экран с message.png */}
+        {showMessage && !gameHasStarted && !isGameOver && (
+          <div style={messageScreenStyle} onClick={startGame}>
+            <div style={messageContentStyle}>
+              <Bird
+                position={0}
+                velocity={0}
+                gameHasStarted={false}
+                hasCollided={false}
+                style={{
+                  position: 'absolute',
+                  left: '-60px', // Отодвигаем птичку влево от message.png
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '50px',
+                  height: '35px',
+                }}
+              />
+              <img
+                src={messageImage}
+                alt="Message"
+                style={messageStyle}
+              />
+            </div>
           </div>
         )}
 
