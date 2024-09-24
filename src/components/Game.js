@@ -77,8 +77,8 @@ const Game = () => {
   const hasPlayedDieSoundRef = useRef(false);
 
   const baseHeight = 112;
-  const gravity = 0.8;
-  const jumpHeight = -10;
+  const gravity = 0.7;
+  const jumpHeight = -8;
   const pipeWidth = 80;
   const pipeGap = 170;
   const pipeSpeed = 4;
