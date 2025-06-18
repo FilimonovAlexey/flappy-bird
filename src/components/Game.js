@@ -4,6 +4,7 @@ import { Howl, Howler } from 'howler';
 import Bird from './Bird';
 import Pipe from './Pipe';
 import Score from './Score';
+import Leaderboard from './Leaderboard';
 import backgroundDay from '../assets/background-day.png';
 import backgroundNight from '../assets/background-night.png';
 import baseImage from '../assets/base.png';
@@ -66,6 +67,10 @@ const Game = () => {
   const [backgroundType, setBackgroundType] = useState('day');
   const [isPaused, setIsPaused] = useState(false);
   const [showMessage, setShowMessage] = useState(false); // Добавлено
+  const [leaderboard, setLeaderboard] = useState(() => {
+    const stored = localStorage.getItem('leaderboard');
+    return stored ? JSON.parse(stored) : [];
+  });
 
   // Рефы для актуальных значений
   const isPausedRef = useRef(isPaused);
@@ -75,6 +80,7 @@ const Game = () => {
   const gameAreaHeightRef = useRef(gameAreaHeight);
   const isGameOverRef = useRef(isGameOver);
   const hasPlayedDieSoundRef = useRef(false);
+  const hasUpdatedLeaderboardRef = useRef(false);
 
   const baseHeight = 112;
   const gravity = 0.7;
@@ -83,6 +89,16 @@ const Game = () => {
   const pipeGap = 170;
   const pipeSpeed = 4;
   const pipeInterval = 2500;
+
+  const updateLeaderboard = useCallback((newScore) => {
+    const stored = localStorage.getItem('leaderboard');
+    const scores = stored ? JSON.parse(stored) : [];
+    scores.push(newScore);
+    scores.sort((a, b) => b - a);
+    const top = scores.slice(0, 5);
+    localStorage.setItem('leaderboard', JSON.stringify(top));
+    return top;
+  }, []);
 
   const pipeTimerRef = useRef(null);
   const playableHeightRef = useRef(gameAreaHeight - baseHeight);
@@ -148,6 +164,7 @@ const Game = () => {
     setScore(0);
     setBackgroundType('day');
     hasPlayedDieSoundRef.current = false;
+    hasUpdatedLeaderboardRef.current = false;
     sounds.wing.play();
   }, []);
 
@@ -348,6 +365,14 @@ const Game = () => {
     startGame();
   }, [startGame]);
 
+  useEffect(() => {
+    if (isGameOver && !hasUpdatedLeaderboardRef.current) {
+      const top = updateLeaderboard(score);
+      setLeaderboard(top);
+      hasUpdatedLeaderboardRef.current = true;
+    }
+  }, [isGameOver, score, updateLeaderboard]);
+
   // Обработчики событий
   const handlePauseClick = useCallback(() => {
     setIsPaused((prev) => !prev);
@@ -419,6 +444,13 @@ const Game = () => {
     width: '100px',
     cursor: 'pointer',
     marginBottom: '20px',
+  };
+
+  const leaderboardStyle = {
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    padding: '10px',
+    borderRadius: '8px',
+    marginTop: '10px',
   };
 
   const pauseButtonStyle = {
@@ -511,6 +543,7 @@ const Game = () => {
               style={startButtonStyle}
               onClick={handleStartClick}
             />
+            <Leaderboard scores={leaderboard} style={leaderboardStyle} />
           </div>
         )}
 
